@@ -15,6 +15,7 @@ Stremio has no built-in way to reorder installed addons. The only native workaro
 - **Drag-and-drop reorder** — grab any row and drop it where you want
 - **Remove addons** — hover a row and click the ✕ to remove it
 - **Backup** — download your full addon list as a JSON file
+- **Restore** — upload a previous backup JSON to reload that addon set, ready to save back to your account
 - **Restore order** — discard unsaved changes and revert to what's on your account
 - **Two auth methods** — email/password login or manual auth key
 - **No server** — everything runs in your browser; nothing is stored or transmitted anywhere except directly to `api.strem.io`
@@ -24,32 +25,11 @@ Stremio has no built-in way to reorder installed addons. The only native workaro
 
 ## Usage
 
-### Option 1 — Download and open
+### Download and open
 
 1. Download `StremioAddonManager.html`
 2. Open it in your browser (double-click or drag onto a browser window)
 3. Log in and start managing your addons
-
-> **Note:** The file must be served over HTTP to make API calls. If login doesn't work when opening directly as a file (`file://`), use Option 2 below.
-
-### Option 2 — Serve locally
-
-If you hit any issues with `file://`, serve it over a local HTTP server instead. Pick whichever you have available:
-
-**Python:**
-```bash
-python -m http.server 8080
-```
-Then open `http://localhost:8080/StremioAddonManager.html`
-
-**Node.js:**
-```bash
-npx serve .
-```
-
-**VS Code:** Install the [Live Server](https://marketplace.visualstudio.com/items?itemName=ritwickdey.LiveServer) extension, right-click the file → *Open with Live Server*
-
----
 
 ## Authentication
 
