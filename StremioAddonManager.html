@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stremio Addon Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #0e0e12;
+  --surface: #16161d;
+  --panel:   #1c1c26;
+  --border:  #2a2a38;
+  --accent:  #7b61ff;
+  --accent2: #a78bfa;
+  --danger:  #ef4444;
+  --success: #22c55e;
+  --text:    #e8e8f0;
+  --muted:   #6b6b80;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, sans-serif; font-size: 14px; min-height: 100vh; display: flex; flex-direction: column; }
+
+/* ── header ── */
+header { padding: 18px 32px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 14px; background: var(--surface); position: sticky; top: 0; z-index: 10; }
+.logo { width: 34px; height: 34px; background: var(--accent); border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; }
+.logo-text h1 { font-size: 15px; font-weight: 600; letter-spacing: -.2px; }
+.logo-text p  { font-size: 12px; color: var(--muted); margin-top: 1px; }
+.header-pill { margin-left: auto; font-size: 11px; font-family: 'JetBrains Mono', monospace; background: #7b61ff15; color: var(--accent2); border: 1px solid #7b61ff35; padding: 3px 11px; border-radius: 100px; }
+
+/* ── layout ── */
+main { flex: 1; max-width: 800px; width: 100%; margin: 0 auto; padding: 32px 24px 80px; display: flex; flex-direction: column; gap: 20px; }
+
+/* ── card ── */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+.card-head { padding: 15px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+.card-head h2 { font-size: 13px; font-weight: 600; flex: 1; }
+.card-body { padding: 20px; }
+.step { width: 22px; height: 22px; border-radius: 7px; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: #7b61ff25; color: var(--accent2); border: 1px solid #7b61ff40; }
+.step.done { background: #22c55e20; color: var(--success); border-color: #22c55e40; }
+
+/* ── tabs ── */
+.tabs { display: flex; gap: 4px; background: var(--panel); padding: 4px; border-radius: 9px; margin-bottom: 18px; }
+.tab { flex: 1; padding: 7px; border: none; border-radius: 6px; background: transparent; color: var(--muted); font-size: 13px; font-family: inherit; cursor: pointer; transition: all .15s; }
+.tab.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px #0006; }
+
+/* ── form ── */
+.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 13px; }
+.field label { font-size: 12px; color: var(--muted); font-weight: 500; }
+.field input { background: var(--panel); border: 1px solid var(--border); border-radius: 9px; color: var(--text); font-family: 'Inter', sans-serif; font-size: 14px; padding: 10px 14px; outline: none; transition: border-color .15s; width: 100%; }
+.field input:focus { border-color: var(--accent); }
+.field input.mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+.hint { font-size: 12px; color: var(--muted); line-height: 1.7; background: var(--panel); border: 1px solid var(--border); border-radius: 9px; padding: 13px 15px; margin-bottom: 14px; }
+.hint code { font-family: 'JetBrains Mono', monospace; background: #7b61ff18; color: var(--accent2); padding: 1px 5px; border-radius: 4px; font-size: 11px; }
+.hint a { color: var(--accent2); text-decoration: none; }
+.hint a:hover { text-decoration: underline; }
+
+/* ── buttons ── */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 10px 20px; border: none; border-radius: 9px; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; transition: all .15s; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: #6d51f0; }
+.btn-primary:disabled { opacity: .45; cursor: not-allowed; }
+.btn-ghost { background: var(--panel); color: var(--muted); border: 1px solid var(--border); }
+.btn-ghost:hover { color: var(--text); border-color: var(--muted); }
+.btn-ghost:disabled { opacity: .4; cursor: not-allowed; }
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.spinner { width: 13px; height: 13px; border: 2px solid rgba(255,255,255,.25); border-top-color: #fff; border-radius: 50%; animation: spin .65s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── messages ── */
+.msg { font-size: 12px; padding: 10px 14px; border-radius: 9px; margin-top: 12px; display: none; line-height: 1.5; }
+.msg.show { display: block; }
+.msg.err  { background: #ef444415; color: var(--danger); border: 1px solid #ef444430; }
+.msg.ok   { background: #22c55e15; color: var(--success); border: 1px solid #22c55e30; }
+.msg.info { background: #7b61ff15; color: var(--accent2); border: 1px solid #7b61ff30; }
+
+/* ── logout ── */
+#logout-btn { font-size: 12px; color: var(--muted); background: none; border: 1px solid var(--border); border-radius: 7px; padding: 4px 10px; cursor: pointer; font-family: inherit; transition: all .15s; display: none; }
+#logout-btn:hover { color: var(--danger); border-color: #ef444450; }
+
+/* ── addon list ── */
+.addon-controls { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+.addon-count { font-size: 12px; color: var(--muted); }
+.addon-count strong { color: var(--text); }
+.hint-small { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+
+.addon-item { display: flex; align-items: center; gap: 11px; padding: 11px 13px; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 6px; cursor: grab; background: var(--panel); transition: border-color .12s, background .12s; user-select: none; }
+.addon-item:active { cursor: grabbing; }
+.addon-item.over { border-color: var(--accent); background: #7b61ff10; }
+.addon-item.dragging { opacity: .35; }
+.drag-handle { color: var(--muted); font-size: 17px; flex-shrink: 0; line-height: 1; }
+.addon-num { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); width: 18px; text-align: right; flex-shrink: 0; }
+.addon-logo { width: 34px; height: 34px; border-radius: 8px; flex-shrink: 0; background: var(--border); display: flex; align-items: center; justify-content: center; font-size: 17px; overflow: hidden; }
+.addon-logo img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
+.addon-info { flex: 1; min-width: 0; }
+.addon-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
+.addon-url  { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: 'JetBrains Mono', monospace; margin-top: 2px; }
+.addon-badge { font-size: 10px; padding: 2px 8px; border-radius: 100px; flex-shrink: 0; font-weight: 500; }
+.badge-official  { background: #7b61ff18; color: var(--accent2); border: 1px solid #7b61ff30; }
+.badge-community { background: #22c55e15; color: var(--success);  border: 1px solid #22c55e30; }
+.addon-rm { background: none; border: none; color: transparent; cursor: pointer; font-size: 14px; padding: 3px 6px; border-radius: 5px; flex-shrink: 0; transition: color .12s; }
+.addon-item:hover .addon-rm { color: var(--muted); }
+.addon-rm:hover { color: var(--danger) !important; }
+
+/* ── save bar ── */
+.save-bar { background: var(--surface); border-top: 1px solid var(--border); padding: 14px 32px; position: fixed; bottom: 0; left: 0; right: 0; display: none; align-items: center; justify-content: space-between; gap: 12px; z-index: 20; }
+.save-bar.show { display: flex; }
+.save-bar-info { font-size: 13px; color: var(--muted); }
+.save-bar-info strong { color: var(--text); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">⚡</div>
+  <div class="logo-text">
+    <h1>Stremio Addon Manager</h1>
+    <p>Reorder, remove, and organise your addons</p>
+  </div>
+  <div class="header-pill">local · no server</div>
+</header>
+
+<main>
+  <div class="card">
+    <div class="card-head">
+      <div class="step" id="step1">1</div>
+      <h2>Connect your Stremio account</h2>
+      <button id="logout-btn">Sign out</button>
+    </div>
+    <div class="card-body">
+      <div class="tabs">
+        <button class="tab active" data-tab="email">Email &amp; password</button>
+        <button class="tab" data-tab="key">Auth key</button>
+      </div>
+      <div id="tab-email">
+        <div class="field"><label>Email</label><input type="text" id="inp-email" placeholder="you@example.com" autocomplete="email"></div>
+        <div class="field"><label>Password</label><input type="password" id="inp-pass" placeholder="••••••••" autocomplete="current-password"></div>
+        <button class="btn btn-primary" id="login-btn"><span>Connect</span></button>
+      </div>
+      <div id="tab-key" style="display:none">
+        <div class="hint">
+          Go to <a href="https://web.stremio.com" target="_blank">web.stremio.com</a>, log in, press F12 → Console tab, then paste:<br><br>
+          <code>JSON.parse(localStorage.getItem("profile")).auth.key</code><br><br>
+          Copy the result and paste it below.
+        </div>
+        <div class="field"><label>Auth key</label><input type="text" id="inp-key" class="mono" placeholder="paste key here…"></div>
+        <button class="btn btn-primary" id="key-btn"><span>Load addons</span></button>
+      </div>
+      <div class="msg" id="auth-msg"></div>
+    </div>
+  </div>
+
+  <div class="card" id="addon-card" style="display:none">
+    <div class="card-head">
+      <div class="step done">2</div>
+      <h2>Manage addons</h2>
+      <div class="btn-row">
+        <button class="btn btn-ghost" id="backup-btn" style="font-size:12px;padding:6px 12px">⬇ Backup</button>
+        <button class="btn btn-ghost" id="refresh-btn" style="font-size:12px;padding:6px 12px">↺ Refresh</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="addon-controls">
+        <div class="addon-count"><strong id="addon-count">0</strong> addons installed</div>
+      </div>
+      <p class="hint-small">Drag rows to reorder · hover a row to remove it · save when done</p>
+      <div id="addon-list"></div>
+      <div class="msg" id="addon-msg"></div>
+    </div>
+  </div>
+</main>
+
+<div class="save-bar" id="save-bar">
+  <div class="save-bar-info"><strong id="save-info"></strong> — unsaved changes</div>
+  <div class="btn-row">
+    <button class="btn btn-ghost" id="discard-btn">Discard</button>
+    <button class="btn btn-primary" id="save-btn"><span>Save to Stremio</span></button>
+  </div>
+</div>
+
+<script>
+(function () {
+  const API = 'https://api.strem.io/api';
+  let authKey = null, original = [], current = [], dragSrc = null;
+
+  function showMsg(id, type, text) { var el = document.getElementById(id); el.className = 'msg show ' + type; el.textContent = text; }
+  function hideMsg(id) { var el = document.getElementById(id); el.className = 'msg'; el.textContent = ''; }
+  function setBtn(id, html, off) { var b = document.getElementById(id); if (!b) return; b.innerHTML = html; b.disabled = !!off; }
+
+  async function apiFetch(endpoint, body) {
+    var resp = await fetch(API + '/' + endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    var text = await resp.text();
+    var data; try { data = JSON.parse(text); } catch(e) { throw new Error('Non-JSON: ' + text.slice(0, 150)); }
+    if (data && data.error) { var e = data.error; throw new Error(typeof e === 'string' ? e : (e.message || JSON.stringify(e))); }
+    return data;
+  }
+
+  // tabs
+  document.querySelectorAll('.tab').forEach(function(t) {
+    t.addEventListener('click', function() {
+      document.querySelectorAll('.tab').forEach(function(x) { x.classList.remove('active'); });
+      t.classList.add('active');
+      document.getElementById('tab-email').style.display = t.dataset.tab === 'email' ? '' : 'none';
+      document.getElementById('tab-key').style.display   = t.dataset.tab === 'key'   ? '' : 'none';
+      hideMsg('auth-msg');
+    });
+  });
+
+  // login
+  async function doLogin() {
+    var email = document.getElementById('inp-email').value.trim();
+    var pass  = document.getElementById('inp-pass').value;
+    if (!email || !pass) { showMsg('auth-msg', 'err', 'Enter your email and password.'); return; }
+    setBtn('login-btn', '<div class="spinner"></div><span>Connecting…</span>', true);
+    hideMsg('auth-msg');
+    try {
+      var data = await apiFetch('login', { type: 'Login', email: email, password: pass });
+      var r = data && data.result;
+      authKey = r ? (r.authKey || r.token || (typeof r === 'string' ? r : null)) : null;
+      if (!authKey) throw new Error('No auth key in response: ' + JSON.stringify(r));
+    } catch(e) {
+      showMsg('auth-msg', 'err', 'Login failed: ' + e.message);
+      setBtn('login-btn', '<span>Connect</span>', false);
+      return;
+    }
+    setBtn('login-btn', '<span>Connect</span>', false);
+    showMsg('auth-msg', 'info', 'Logged in — fetching addons…');
+    await loadAddons();
+  }
+
+  async function doKeyLogin() {
+    var key = document.getElementById('inp-key').value.trim();
+    if (!key) { showMsg('auth-msg', 'err', 'Paste your auth key.'); return; }
+    authKey = key;
+    setBtn('key-btn', '<div class="spinner"></div><span>Loading…</span>', true);
+    showMsg('auth-msg', 'info', 'Fetching addons…');
+    await loadAddons();
+    setBtn('key-btn', '<span>Load addons</span>', false);
+  }
+
+  async function loadAddons() {
+    var data;
+    try {
+      data = await apiFetch('addonCollectionGet', { type: 'AddonCollectionGet', authKey: authKey, update: true });
+    } catch(e) {
+      showMsg('auth-msg', 'err', 'Could not fetch addons: ' + e.message);
+      authKey = null;
+      return;
+    }
+    var addons = null;
+    if (data && data.result && Array.isArray(data.result.addons)) addons = data.result.addons;
+    else if (data && Array.isArray(data.result))                  addons = data.result;
+    else if (data && Array.isArray(data.addons))                  addons = data.addons;
+    if (!addons) { showMsg('auth-msg', 'err', 'Unexpected API response: ' + JSON.stringify(data).slice(0, 200)); return; }
+
+    original = JSON.parse(JSON.stringify(addons));
+    current  = JSON.parse(JSON.stringify(addons));
+    hideMsg('auth-msg');
+    document.getElementById('step1').textContent = '✓';
+    document.getElementById('step1').classList.add('done');
+    document.getElementById('logout-btn').style.display = '';
+    document.getElementById('addon-card').style.display = '';
+    document.getElementById('save-bar').classList.remove('show');
+    render();
+  }
+
+  function render() {
+    var list = document.getElementById('addon-list');
+    list.innerHTML = '';
+    document.getElementById('addon-count').textContent = current.length;
+
+    current.forEach(function(addon, i) {
+      var m = addon.manifest || {};
+      var isOfficial = (addon.flags && addon.flags.official) || (m.id && m.id.startsWith('com.stremio'));
+
+      var item = document.createElement('div');
+      item.className = 'addon-item';
+      item.draggable = true;
+
+      var handle = document.createElement('span');
+      handle.className = 'drag-handle';
+      handle.textContent = '⠿';
+      item.appendChild(handle);
+
+      var num = document.createElement('span');
+      num.className = 'addon-num';
+      num.textContent = i + 1;
+      item.appendChild(num);
+
+      var logo = document.createElement('div');
+      logo.className = 'addon-logo';
+      if (m.logo) {
+        var img = document.createElement('img');
+        img.alt = '';
+        img.src = m.logo;
+        img.onerror = function() { logo.textContent = '🧩'; };
+        logo.appendChild(img);
+      } else { logo.textContent = '🧩'; }
+      item.appendChild(logo);
+
+      var info = document.createElement('div');
+      info.className = 'addon-info';
+      var nm = document.createElement('div'); nm.className = 'addon-name'; nm.textContent = m.name || m.id || 'Unknown addon';
+      var ur = document.createElement('div'); ur.className = 'addon-url';  ur.textContent = addon.transportUrl || '';
+      info.appendChild(nm); info.appendChild(ur);
+      item.appendChild(info);
+
+      var badge = document.createElement('span');
+      badge.className = 'addon-badge ' + (isOfficial ? 'badge-official' : 'badge-community');
+      badge.textContent = isOfficial ? 'Official' : 'Community';
+      item.appendChild(badge);
+
+      var rm = document.createElement('button');
+      rm.className = 'addon-rm'; rm.title = 'Remove'; rm.textContent = '✕';
+      rm.addEventListener('click', function() { current.splice(i, 1); render(); markChanged(); });
+      item.appendChild(rm);
+
+      item.addEventListener('dragstart', function(e) { dragSrc = i; setTimeout(function(){ item.classList.add('dragging'); }, 0); e.dataTransfer.effectAllowed = 'move'; });
+      item.addEventListener('dragend',   function() { item.classList.remove('dragging'); list.querySelectorAll('.addon-item').forEach(function(el){ el.classList.remove('over'); }); });
+      item.addEventListener('dragover',  function(e) { e.preventDefault(); list.querySelectorAll('.addon-item').forEach(function(el){ el.classList.remove('over'); }); item.classList.add('over'); });
+      item.addEventListener('dragleave', function() { item.classList.remove('over'); });
+      item.addEventListener('drop', function(e) {
+        e.preventDefault(); item.classList.remove('over');
+        if (dragSrc === null || dragSrc === i) return;
+        var moved = current.splice(dragSrc, 1)[0];
+        current.splice(i, 0, moved);
+        dragSrc = null; render(); markChanged();
+      });
+
+      list.appendChild(item);
+    });
+  }
+
+  function markChanged() {
+    var changed = JSON.stringify(current.map(function(a){ return a.transportUrl; })) !== JSON.stringify(original.map(function(a){ return a.transportUrl; }));
+    document.getElementById('save-bar').classList.toggle('show', changed);
+    if (changed) document.getElementById('save-info').textContent = current.length + ' addons';
+  }
+
+  document.getElementById('login-btn').addEventListener('click', doLogin);
+  document.getElementById('inp-pass').addEventListener('keydown', function(e){ if(e.key==='Enter') doLogin(); });
+  document.getElementById('key-btn').addEventListener('click', doKeyLogin);
+  document.getElementById('inp-key').addEventListener('keydown', function(e){ if(e.key==='Enter') doKeyLogin(); });
+
+  document.getElementById('logout-btn').addEventListener('click', function() {
+    authKey = null; original = []; current = [];
+    document.getElementById('addon-card').style.display = 'none';
+    document.getElementById('save-bar').classList.remove('show');
+    document.getElementById('logout-btn').style.display = 'none';
+    document.getElementById('step1').textContent = '1';
+    document.getElementById('step1').classList.remove('done');
+    document.getElementById('inp-email').value = '';
+    document.getElementById('inp-pass').value = '';
+    document.getElementById('inp-key').value = '';
+    hideMsg('auth-msg'); hideMsg('addon-msg');
+  });
+
+  document.getElementById('discard-btn').addEventListener('click', function() {
+    current = JSON.parse(JSON.stringify(original)); render();
+    document.getElementById('save-bar').classList.remove('show');
+    hideMsg('addon-msg');
+  });
+
+  document.getElementById('save-btn').addEventListener('click', async function() {
+    setBtn('save-btn', '<div class="spinner"></div><span>Saving…</span>', true);
+    hideMsg('addon-msg');
+    try {
+      await apiFetch('addonCollectionSet', { type: 'AddonCollectionSet', authKey: authKey, addons: current });
+      original = JSON.parse(JSON.stringify(current));
+      document.getElementById('save-bar').classList.remove('show');
+      showMsg('addon-msg', 'ok', '✓ Saved! Restart Stremio to see the new order.');
+    } catch(e) {
+      showMsg('addon-msg', 'err', 'Save failed: ' + e.message);
+    }
+    setBtn('save-btn', '<span>Save to Stremio</span>', false);
+  });
+
+  document.getElementById('refresh-btn').addEventListener('click', async function() {
+    setBtn('refresh-btn', '↺ Loading…', true);
+    await loadAddons();
+    setBtn('refresh-btn', '↺ Refresh', false);
+  });
+
+  document.getElementById('backup-btn').addEventListener('click', function() {
+    var blob = new Blob([JSON.stringify(current, null, 2)], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'stremio-addons-' + new Date().toISOString().slice(0, 10) + '.json';
+    a.click(); URL.revokeObjectURL(a.href);
+  });
+})();
+</script>
+</body>
+</html>
