@@ -91,7 +91,7 @@ After saving, **restart Stremio** (or reload the web app) to see the new order t
 
 - Your credentials are sent **only** to `api.strem.io` — the official Stremio API
 - Nothing is logged, stored, or transmitted to any other server
-- The app has no backend — it is a static HTML file
+- The app has no backend and is a static HTML file
 - Closing the tab clears everything from memory
 
 You can verify this yourself by inspecting the source.
