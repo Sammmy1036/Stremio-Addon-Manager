@@ -108,6 +108,43 @@ main { flex: 1; max-width: 800px; width: 100%; margin: 0 auto; padding: 32px 24p
 .save-bar.show { display: flex; }
 .save-bar-info { font-size: 13px; color: var(--muted); }
 .save-bar-info strong { color: var(--text); }
+
+/* ── addon-item edit button ── */
+.addon-edit { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px; padding: 3px 6px; border-radius: 5px; flex-shrink: 0; transition: color .12s; }
+.addon-item:hover .addon-edit { color: var(--muted); }
+.addon-edit:hover { color: var(--accent2) !important; }
+
+/* ── edit modal ── */
+.modal-overlay { position: fixed; inset: 0; background: #000a; z-index: 30; display: none; align-items: flex-start; justify-content: center; overflow-y: auto; padding: 40px 16px; }
+.modal-overlay.show { display: flex; }
+.modal { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; width: 100%; max-width: 640px; overflow: hidden; }
+.modal-head { padding: 18px 22px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+.modal-head h2 { font-size: 15px; font-weight: 600; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.modal-close { background: none; border: none; color: var(--muted); font-size: 16px; cursor: pointer; padding: 4px 8px; border-radius: 6px; }
+.modal-close:hover { color: var(--text); }
+.modal-body { padding: 20px 22px; max-height: 60vh; overflow-y: auto; }
+.modal-foot { padding: 14px 22px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.modal-section-label { font-size: 12px; color: var(--muted); font-weight: 500; margin: 18px 0 10px; text-transform: uppercase; letter-spacing: .3px; }
+.modal-section-label:first-child { margin-top: 0; }
+.field textarea { background: var(--panel); border: 1px solid var(--border); border-radius: 9px; color: var(--text); font-family: 'Inter', sans-serif; font-size: 13px; padding: 10px 14px; outline: none; width: 100%; resize: vertical; min-height: 64px; }
+.field textarea:focus { border-color: var(--accent); }
+.field textarea.mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; min-height: 320px; }
+.empty-note { font-size: 12px; color: var(--muted); padding: 12px 14px; background: var(--panel); border: 1px solid var(--border); border-radius: 9px; }
+
+.cat-item { display: flex; align-items: center; gap: 9px; padding: 9px 11px; border: 1px solid var(--border); border-radius: 9px; margin-bottom: 6px; background: var(--panel); cursor: grab; }
+.cat-item:active { cursor: grabbing; }
+.cat-item.over { border-color: var(--accent); background: #7b61ff10; }
+.cat-item.dragging { opacity: .35; }
+.cat-drag { color: var(--muted); font-size: 15px; flex-shrink: 0; line-height: 1; }
+.cat-toggle { background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 7px; width: 28px; height: 28px; font-size: 13px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; transition: all .12s; }
+.cat-toggle.on { color: var(--success); border-color: #22c55e40; background: #22c55e12; }
+.cat-toggle:hover { border-color: var(--muted); }
+.cat-type { font-size: 10px; color: var(--muted); background: var(--surface); border: 1px solid var(--border); border-radius: 100px; padding: 2px 8px; flex-shrink: 0; font-weight: 500; }
+.cat-name-input { flex: 1; min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; color: var(--text); font-family: 'Inter', sans-serif; font-size: 13px; padding: 7px 10px; outline: none; }
+.cat-name-input:focus { border-color: var(--accent); }
+.cat-rm { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 13px; padding: 4px 6px; border-radius: 5px; flex-shrink: 0; }
+.cat-rm:hover { color: var(--danger); }
+.tab-small { font-size: 12px; padding: 5px 12px; }
 </style>
 </head>
 <body>
@@ -157,6 +194,8 @@ main { flex: 1; max-width: 800px; width: 100%; margin: 0 auto; padding: 32px 24p
       <h2>Manage addons</h2>
       <div class="btn-row">
         <button class="btn btn-ghost" id="backup-btn" style="font-size:12px;padding:6px 12px">⬇ Backup</button>
+        <button class="btn btn-ghost" id="restore-btn" style="font-size:12px;padding:6px 12px">⬆ Restore</button>
+        <input type="file" id="restore-input" accept=".json" style="display:none">
         <button class="btn btn-ghost" id="refresh-btn" style="font-size:12px;padding:6px 12px">↺ Refresh</button>
       </div>
     </div>
@@ -179,10 +218,51 @@ main { flex: 1; max-width: 800px; width: 100%; margin: 0 auto; padding: 32px 24p
   </div>
 </div>
 
+<div class="modal-overlay" id="edit-overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="edit-title">Editing addon</h2>
+      <button class="modal-close" id="edit-close-x">✕</button>
+    </div>
+    <div class="card-body" style="padding:14px 22px 0">
+      <div class="tabs" style="margin-bottom:0">
+        <button class="tab active tab-small" data-mode="classic">Classic mode</button>
+        <button class="tab tab-small" data-mode="advanced">Advanced mode</button>
+      </div>
+    </div>
+
+    <div class="modal-body" id="edit-body-classic">
+      <div class="field"><label>Name</label><input type="text" id="edit-name"></div>
+      <div class="field"><label>Description</label><textarea id="edit-description"></textarea></div>
+      <div class="field"><label>Logo URL</label><input type="text" id="edit-logo" class="mono"></div>
+      <div class="field"><label>Background URL</label><input type="text" id="edit-background" class="mono"></div>
+
+      <div class="modal-section-label">Catalogs (drag to reorder · toggle to show/hide on Home · click name to rename)</div>
+      <div id="edit-cat-list"></div>
+      <div class="empty-note" id="edit-cat-empty" style="display:none">This addon has no catalogs — it likely only provides streams/subtitles/meta lookups.</div>
+    </div>
+
+    <div class="modal-body" id="edit-body-advanced" style="display:none">
+      <div class="hint" style="margin-bottom:10px">Raw manifest JSON for this addon, as stored in your collection. Edit with care — invalid JSON can't be saved.</div>
+      <div class="field"><textarea id="edit-json" class="mono"></textarea></div>
+      <div class="msg" id="edit-json-msg"></div>
+    </div>
+
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="edit-reset" style="border-color:#f59e0b40;color:#f59e0b">Reset Addon</button>
+      <div class="btn-row">
+        <button class="btn btn-ghost" id="edit-cancel">Cancel</button>
+        <button class="btn btn-primary" id="edit-save">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 (function () {
   const API = 'https://api.strem.io/api';
   let authKey = null, original = [], current = [], dragSrc = null;
+  let editingIndex = null, editingManifest = null, editingCatalogs = [], catDragSrc = null, editMode = 'classic';
 
   function showMsg(id, type, text) { var el = document.getElementById(id); el.className = 'msg show ' + type; el.textContent = text; }
   function hideMsg(id) { var el = document.getElementById(id); el.className = 'msg'; el.textContent = ''; }
@@ -311,6 +391,11 @@ main { flex: 1; max-width: 800px; width: 100%; margin: 0 auto; padding: 32px 24p
       badge.textContent = isOfficial ? 'Official' : 'Community';
       item.appendChild(badge);
 
+      var edit = document.createElement('button');
+      edit.className = 'addon-edit'; edit.title = 'Edit catalogs'; edit.textContent = '✎';
+      edit.addEventListener('click', function(e) { e.stopPropagation(); openEditor(i); });
+      item.appendChild(edit);
+
       var rm = document.createElement('button');
       rm.className = 'addon-rm'; rm.title = 'Remove'; rm.textContent = '✕';
       rm.addEventListener('click', function() { current.splice(i, 1); render(); markChanged(); });
@@ -388,6 +473,206 @@ main { flex: 1; max-width: 800px; width: 100%; margin: 0 auto; padding: 32px 24p
     a.href = URL.createObjectURL(blob);
     a.download = 'stremio-addons-' + new Date().toISOString().slice(0, 10) + '.json';
     a.click(); URL.revokeObjectURL(a.href);
+  });
+
+  document.getElementById('restore-btn').addEventListener('click', function() {
+    document.getElementById('restore-input').click();
+  });
+
+  document.getElementById('restore-input').addEventListener('change', function(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      try {
+        var parsed = JSON.parse(ev.target.result);
+        // accept either a raw array or the full addonCollectionGet result shape
+        var addons = null;
+        if (Array.isArray(parsed))                              addons = parsed;
+        else if (parsed.result && Array.isArray(parsed.result.addons)) addons = parsed.result.addons;
+        else if (Array.isArray(parsed.result))                  addons = parsed.result;
+        else if (Array.isArray(parsed.addons))                  addons = parsed.addons;
+        if (!addons || addons.length === 0) throw new Error('No addons found in file.');
+        // each item should have a transportUrl
+        if (!addons[0].transportUrl) throw new Error('File does not look like a Stremio addon backup.');
+        current = JSON.parse(JSON.stringify(addons));
+        render();
+        markChanged();
+        showMsg('addon-msg', 'info', 'Backup loaded — ' + addons.length + ' addons. Review and click Save to Stremio when ready.');
+      } catch(err) {
+        showMsg('addon-msg', 'err', 'Could not read backup: ' + err.message);
+      }
+      // reset so the same file can be re-selected
+      e.target.value = '';
+    };
+    reader.readAsText(file);
+  });
+
+  /* ── catalog / manifest editor ── */
+
+  function catIsHome(cat) {
+    var extra = cat.extra || cat.extraSupported || [];
+    return !extra.some(function(e) { return e && e.name === 'search' && e.isRequired; });
+  }
+  function setCatHome(cat, home) {
+    if (!Array.isArray(cat.extra)) cat.extra = [];
+    var idx = cat.extra.findIndex(function(e) { return e && e.name === 'search'; });
+    if (home) {
+      if (idx !== -1) cat.extra[idx].isRequired = false;
+    } else {
+      if (idx !== -1) cat.extra[idx].isRequired = true;
+      else cat.extra.push({ name: 'search', isRequired: true });
+    }
+  }
+
+  function openEditor(i) {
+    editingIndex = i;
+    var addon = current[i];
+    var m = addon.manifest || {};
+    editingManifest = JSON.parse(JSON.stringify(m));
+    editingCatalogs = Array.isArray(editingManifest.catalogs) ? editingManifest.catalogs : [];
+    editMode = 'classic';
+    document.querySelectorAll('#edit-overlay .tab').forEach(function(t) { t.classList.toggle('active', t.dataset.mode === 'classic'); });
+    document.getElementById('edit-body-classic').style.display = '';
+    document.getElementById('edit-body-advanced').style.display = 'none';
+    hideMsg('edit-json-msg');
+    fillEditorFields();
+    document.getElementById('edit-overlay').classList.add('show');
+  }
+
+  function fillEditorFields() {
+    document.getElementById('edit-title').textContent = 'Editing "' + (editingManifest.name || 'addon') + '"';
+    document.getElementById('edit-name').value = editingManifest.name || '';
+    document.getElementById('edit-description').value = editingManifest.description || '';
+    document.getElementById('edit-logo').value = editingManifest.logo || '';
+    document.getElementById('edit-background').value = editingManifest.background || '';
+    document.getElementById('edit-json').value = JSON.stringify(editingManifest, null, 2);
+    renderCatList();
+  }
+
+  function renderCatList() {
+    var list = document.getElementById('edit-cat-list');
+    var empty = document.getElementById('edit-cat-empty');
+    list.innerHTML = '';
+    empty.style.display = editingCatalogs.length ? 'none' : '';
+
+    editingCatalogs.forEach(function(cat, i) {
+      var row = document.createElement('div');
+      row.className = 'cat-item';
+      row.draggable = true;
+
+      var handle = document.createElement('span'); handle.className = 'cat-drag'; handle.textContent = '⠿';
+      row.appendChild(handle);
+
+      var home = catIsHome(cat);
+      var toggle = document.createElement('button');
+      toggle.className = 'cat-toggle' + (home ? ' on' : '');
+      toggle.title = home ? 'Visible on Home — click to hide' : 'Hidden from Home — click to show';
+      toggle.textContent = home ? '🏠' : '🚫';
+      toggle.addEventListener('click', function() { setCatHome(cat, !catIsHome(cat)); renderCatList(); });
+      row.appendChild(toggle);
+
+      var type = document.createElement('span'); type.className = 'cat-type'; type.textContent = cat.type || '?';
+      row.appendChild(type);
+
+      var nameInput = document.createElement('input');
+      nameInput.className = 'cat-name-input';
+      nameInput.value = cat.name || cat.id || '';
+      nameInput.placeholder = 'Catalog name';
+      nameInput.addEventListener('input', function() { cat.name = nameInput.value; });
+      row.appendChild(nameInput);
+
+      var rm = document.createElement('button');
+      rm.className = 'cat-rm'; rm.title = 'Delete catalog'; rm.textContent = '✕';
+      rm.addEventListener('click', function() { editingCatalogs.splice(i, 1); renderCatList(); });
+      row.appendChild(rm);
+
+      row.addEventListener('dragstart', function() { catDragSrc = i; setTimeout(function(){ row.classList.add('dragging'); }, 0); });
+      row.addEventListener('dragend', function() { row.classList.remove('dragging'); list.querySelectorAll('.cat-item').forEach(function(el){ el.classList.remove('over'); }); });
+      row.addEventListener('dragover', function(e) { e.preventDefault(); list.querySelectorAll('.cat-item').forEach(function(el){ el.classList.remove('over'); }); row.classList.add('over'); });
+      row.addEventListener('dragleave', function() { row.classList.remove('over'); });
+      row.addEventListener('drop', function(e) {
+        e.preventDefault(); row.classList.remove('over');
+        if (catDragSrc === null || catDragSrc === i) return;
+        var moved = editingCatalogs.splice(catDragSrc, 1)[0];
+        editingCatalogs.splice(i, 0, moved);
+        catDragSrc = null; renderCatList();
+      });
+
+      list.appendChild(row);
+    });
+  }
+
+  function closeEditor() {
+    document.getElementById('edit-overlay').classList.remove('show');
+    editingIndex = null; editingManifest = null; editingCatalogs = [];
+  }
+
+  document.querySelectorAll('#edit-overlay .tab').forEach(function(t) {
+    t.addEventListener('click', function() {
+      if (editMode === 'classic' && t.dataset.mode === 'advanced') {
+        // moving into advanced: sync latest classic edits into the JSON view
+        syncClassicIntoManifest();
+        document.getElementById('edit-json').value = JSON.stringify(editingManifest, null, 2);
+      } else if (editMode === 'advanced' && t.dataset.mode === 'classic') {
+        // moving out of advanced: try to parse JSON back
+        try {
+          editingManifest = JSON.parse(document.getElementById('edit-json').value);
+          editingCatalogs = Array.isArray(editingManifest.catalogs) ? editingManifest.catalogs : [];
+          fillEditorFields();
+          hideMsg('edit-json-msg');
+        } catch (err) {
+          showMsg('edit-json-msg', 'err', 'Invalid JSON — fix it before switching to Classic mode.');
+          return;
+        }
+      }
+      editMode = t.dataset.mode;
+      document.querySelectorAll('#edit-overlay .tab').forEach(function(x) { x.classList.remove('active'); });
+      t.classList.add('active');
+      document.getElementById('edit-body-classic').style.display = editMode === 'classic' ? '' : 'none';
+      document.getElementById('edit-body-advanced').style.display = editMode === 'advanced' ? '' : 'none';
+    });
+  });
+
+  function syncClassicIntoManifest() {
+    editingManifest.name = document.getElementById('edit-name').value;
+    editingManifest.description = document.getElementById('edit-description').value;
+    editingManifest.logo = document.getElementById('edit-logo').value;
+    editingManifest.background = document.getElementById('edit-background').value;
+    editingManifest.catalogs = editingCatalogs;
+  }
+
+  document.getElementById('edit-close-x').addEventListener('click', closeEditor);
+  document.getElementById('edit-cancel').addEventListener('click', closeEditor);
+  document.getElementById('edit-overlay').addEventListener('click', function(e) { if (e.target.id === 'edit-overlay') closeEditor(); });
+
+  document.getElementById('edit-reset').addEventListener('click', function() {
+    if (editingIndex === null) return;
+    var addon = current[editingIndex];
+    var orig = original.find(function(a) { return a.transportUrl === addon.transportUrl; });
+    if (!orig) { showMsg('edit-json-msg', 'err', 'No original manifest on file for this addon (it was added this session).'); return; }
+    editingManifest = JSON.parse(JSON.stringify(orig.manifest || {}));
+    editingCatalogs = Array.isArray(editingManifest.catalogs) ? editingManifest.catalogs : [];
+    fillEditorFields();
+    if (editMode === 'advanced') { document.getElementById('edit-body-classic').style.display = ''; document.getElementById('edit-body-advanced').style.display = 'none'; document.querySelectorAll('#edit-overlay .tab').forEach(function(t){ t.classList.toggle('active', t.dataset.mode==='classic'); }); editMode = 'classic'; }
+  });
+
+  document.getElementById('edit-save').addEventListener('click', function() {
+    if (editingIndex === null) return;
+    if (editMode === 'advanced') {
+      try {
+        editingManifest = JSON.parse(document.getElementById('edit-json').value);
+      } catch (err) {
+        showMsg('edit-json-msg', 'err', 'Invalid JSON: ' + err.message);
+        return;
+      }
+    } else {
+      syncClassicIntoManifest();
+    }
+    current[editingIndex].manifest = editingManifest;
+    closeEditor();
+    render();
+    markChanged();
   });
 })();
 </script>
