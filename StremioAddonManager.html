@@ -418,7 +418,10 @@ main { flex: 1; max-width: 800px; width: 100%; margin: 0 auto; padding: 32px 24p
   }
 
   function markChanged() {
-    var changed = JSON.stringify(current.map(function(a){ return a.transportUrl; })) !== JSON.stringify(original.map(function(a){ return a.transportUrl; }));
+    function fingerprint(list) {
+      return JSON.stringify(list.map(function(a) { return { url: a.transportUrl, manifest: a.manifest }; }));
+    }
+    var changed = fingerprint(current) !== fingerprint(original);
     document.getElementById('save-bar').classList.toggle('show', changed);
     if (changed) document.getElementById('save-info').textContent = current.length + ' addons';
   }
@@ -493,7 +496,7 @@ main { flex: 1; max-width: 800px; width: 100%; margin: 0 auto; padding: 32px 24p
         else if (Array.isArray(parsed.result))                  addons = parsed.result;
         else if (Array.isArray(parsed.addons))                  addons = parsed.addons;
         if (!addons || addons.length === 0) throw new Error('No addons found in file.');
-        // each item should have a transportUrl
+        // basic sanity check — each item should have a transportUrl
         if (!addons[0].transportUrl) throw new Error('File does not look like a Stremio addon backup.');
         current = JSON.parse(JSON.stringify(addons));
         render();
